@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Letter Hero — Muhammad</title>
+<style>
+:root{--navy:#102a43;--blue:#1d73d8;--yellow:#ffd447;--bg:#eaf5ff}
+*{box-sizing:border-box}
+body{margin:0;background:linear-gradient(160deg,#071d35,#2377c9);font-family:Arial,sans-serif;color:var(--navy);min-height:100vh;display:flex;justify-content:center;align-items:center;padding:12px}
+.app{width:min(760px,100%);background:#fff;border-radius:28px;overflow:hidden;box-shadow:0 18px 50px #0008}
+header{background:linear-gradient(135deg,#1167c4,#22a6f2);color:#fff;padding:18px 20px;display:flex;justify-content:space-between;align-items:center}
+h1{font-size:clamp(25px,6vw,40px);margin:0}.sub{margin:4px 0 0;font-size:14px;opacity:.9}
+.score{background:#0b2d55;padding:10px 14px;border-radius:16px;font-weight:800;font-size:18px}
+main{padding:18px}.progress{height:10px;background:#dbe8f5;border-radius:20px;overflow:hidden;margin-bottom:18px}.bar{height:100%;background:#ffd447;width:0;transition:.3s}
+.hero{background:var(--bg);border-radius:22px;padding:18px;text-align:center}
+.robot{font-size:64px}.mission{font-weight:800;color:#1267b1}.instruction{font-size:20px;font-weight:800;margin:8px 0}
+.target{background:#fff;border-radius:22px;display:flex;align-items:center;justify-content:center;width:150px;height:150px;margin:16px auto;font-size:105px;font-weight:900;box-shadow:0 7px 18px #0001}
+.choices{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+button{font:inherit;font-weight:900;border:0;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.choice{height:105px;border-radius:20px;background:#fff;font-size:48px;color:var(--navy);box-shadow:0 5px 14px #0002;border:3px solid #d8e7f5}
+.choice:active{transform:scale(.96)}
+.feedback{min-height:45px;font-size:20px;font-weight:900;padding:12px 4px 0}
+.next,.restart{display:none;width:100%;padding:15px;border-radius:18px;background:#102a43;color:#fff;margin-top:8px}
+.result{text-align:center;display:none;padding:25px}.trophy{font-size:80px}.final{font-size:56px;font-weight:900;color:#1267b1}
+.small{color:#60758a}
+.controls{display:flex;gap:10px;margin-top:14px}.controls button{flex:1;padding:12px;border-radius:14px;background:#edf5fb;color:#17324d}
+@media(max-width:430px){main{padding:12px}.target{width:130px;height:130px;font-size:90px}.choice{height:90px;font-size:40px}}
+</style>
+</head>
+<body>
+<div class="app">
+<header>
+  <div><h1>🤖 Letter Hero</h1><div class="sub">Misi Kenal Huruf • Muhammad</div></div>
+  <div class="score">⭐ <span id="score">0</span></div>
+</header>
+<main>
+  <div class="progress"><div class="bar" id="bar"></div></div>
+
+  <section id="game" class="hero">
+    <div class="robot">🤖⚡</div>
+    <div class="mission" id="mission">MISI 1 / 10</div>
+    <div class="instruction">Cari huruf yang sama!</div>
+    <div class="target" id="target">A</div>
+    <div class="choices" id="choices"></div>
+    <div class="feedback" id="feedback"></div>
+    <button class="next" id="next">➡️ Misi Seterusnya</button>
+    <div class="controls">
+      <button onclick="speak()">🔊 Dengar</button>
+      <button onclick="startGame()">🔄 Mula Semula</button>
+    </div>
+  </section>
+
+  <section id="result" class="result">
+    <div class="trophy">🏆</div>
+    <h2>Misi Selesai!</h2>
+    <div class="final"><span id="finalScore">0</span>/10</div>
+    <p id="finalText"></p>
+    <button class="restart" id="restart" onclick="startGame()">🎮 Main Lagi</button>
+  </section>
+</main>
+</div>
+
+<script>
+const letters="ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+let questions=[],current=0,score=0,locked=false;
+
+function shuffle(a){return [...a].sort(()=>Math.random()-0.5)}
+function makeQuestions(){
+  return shuffle(letters).slice(0,10).map(target=>{
+    const opts=[target];
+    while(opts.length<3){
+      const x=letters[Math.floor(Math.random()*26)];
+      if(!opts.includes(x))opts.push(x);
+    }
+    return {target,opts:shuffle(opts)};
+  });
+}
+function startGame(){
+  questions=makeQuestions();current=0;score=0;
+  document.getElementById("game").style.display="block";
+  document.getElementById("result").style.display="none";
+  render();
+}
+function render(){
+  locked=false;
+  const q=questions[current];
+  document.getElementById("mission").textContent=`MISI ${current+1} / 10`;
+  document.getElementById("target").textContent=q.target;
+  document.getElementById("score").textContent=score;
+  document.getElementById("bar").style.width=((current+1)/10*100)+"%";
+  document.getElementById("feedback").textContent="";
+  document.getElementById("next").style.display="none";
+  const box=document.getElementById("choices");box.innerHTML="";
+  q.opts.forEach(letter=>{
+    const b=document.createElement("button");
+    b.className="choice";b.textContent=letter;
+    b.onclick=()=>answer(letter,b);
+    box.appendChild(b);
+  });
+}
+function answer(letter,button){
+  if(locked)return;
+  locked=true;
+  const correct=questions[current].target;
+  if(letter===correct){
+    score++;
+    button.textContent="⭐ "+letter;
+    document.getElementById("feedback").textContent="🎉 BETUL! Hebat Muhammad!";
+    speakText("Betul! Hebat Muhammad!");
+  }else{
+    button.textContent="❌ "+letter;
+    document.getElementById("feedback").textContent=`Cuba lagi. Cari huruf ${correct}.`;
+    speakText(`Cuba lagi. Cari huruf ${correct}.`);
+  }
+  document.getElementById("score").textContent=score;
+  document.getElementById("next").style.display="block";
+}
+document.getElementById("next").onclick=()=>{
+  current++;
+  if(current<10)render();else finish();
+};
+function finish(){
+  document.getElementById("game").style.display="none";
+  document.getElementById("result").style.display="block";
+  document.getElementById("finalScore").textContent=score;
+  document.getElementById("restart").style.display="block";
+  document.getElementById("finalText").textContent=
+    score===10?"🌟 Perfect! Robot Hero Muhammad!":
+    score>=8?"🚀 Bagus! Jom cuba lagi untuk 10/10!":
+    "💪 Tak apa. Kita latihan lagi!";
+}
+function speak(){
+  const q=questions[current];
+  speakText(`Cari huruf yang sama. Huruf ${q.target}.`);
+}
+function speakText(text){
+  if("speechSynthesis" in window){
+    speechSynthesis.cancel();
+    const u=new SpeechSynthesisUtterance(text);
+    u.lang="ms-MY";u.rate=.8;
+    speechSynthesis.speak(u);
+  }
+}
+startGame();
+</script>
+</body>
+</html>
